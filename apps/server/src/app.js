@@ -1,0 +1,15 @@
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import pinoHttp from 'pino-http';
+import { env } from './config/env.js';
+import { errorHandler, notFound } from './middleware/error-handler.js';
+import { authModule } from './modules/auth/auth.module.js';
+import { dashboardModule } from './modules/dashboard/dashboard.module.js';
+import { usersModule } from './modules/users/users.module.js';
+import { logger } from './shared/logger.js';
+export const app=express();
+app.use(pinoHttp({logger}),helmet(),cors({origin:env.WEB_ORIGIN,credentials:true}),express.json({limit:'1mb'}),cookieParser());
+app.get('/health',(req,res)=>res.json({status:'ok'}));
+app.use('/api/auth',authModule);app.use('/api/dashboard',dashboardModule);app.use('/api/users',usersModule);app.use(notFound);app.use(errorHandler);
