@@ -18,7 +18,6 @@ const assertConfig = () => {
     throw new Error("DATABASE_URL is required.");
   }
 };
-
 const server = http.createServer(app);
 const sockets = new Set();
 let shuttingDown = false;
@@ -30,7 +29,6 @@ server.on("connection", (socket) => {
   sockets.add(socket);
   socket.once("close", () => sockets.delete(socket));
 });
-
 server.on("clientError", (error, socket) => {
   logger.warn({ error }, "Invalid HTTP client request");
   if (socket.writable) socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
@@ -42,7 +40,6 @@ server.on("error", (error) => {
 const closeServer = () => new Promise((resolve, reject) => {
   server.close((error) => error ? reject(error) : resolve());
 });
-
 const shutdown = async (signal) => {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -65,7 +62,6 @@ const shutdown = async (signal) => {
     process.exitCode = 1;
   }
 };
-
 const start = async () => {
   assertConfig();
   captureProcessErrors();
@@ -88,7 +84,6 @@ const start = async () => {
     databaseLatencyMs: database.latencyMs
   }, "API server started");
 };
-
 process.once("SIGTERM", () => shutdown("SIGTERM"));
 process.once("SIGINT", () => shutdown("SIGINT"));
 start().catch(async (error) => {
