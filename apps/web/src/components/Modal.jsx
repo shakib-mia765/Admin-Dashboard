@@ -39,9 +39,7 @@ const ACTION_DEFAULTS = Object.freeze({
 
 let scrollLockCount = 0;
 let previousBodyOverflow = "";
-
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
-
 const isFocusable = (element) => {
   if (!(element instanceof HTMLElement)) return false;
   const style = window.getComputedStyle(element);
@@ -55,7 +53,6 @@ const lockBodyScroll = () => {
   }
   scrollLockCount += 1;
 };
-
 const unlockBodyScroll = () => {
   scrollLockCount = Math.max(0, scrollLockCount - 1);
   if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
@@ -66,20 +63,17 @@ const normalizeError = (reason) => {
   if (typeof reason === "string" && reason.trim()) return reason;
   return "The requested action could not be completed.";
 };
-
 const CloseIcon = () => (
   <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
 const Spinner = () => (
   <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 animate-spin" fill="none">
     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" className="opacity-25" />
     <path fill="currentColor" className="opacity-90" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3Z" />
   </svg>
 );
-
 const Modal = ({
   open,
   title,
@@ -117,9 +111,7 @@ const Modal = ({
   const actionRequestRef = useRef(0);
   const [pendingAction, setPendingAction] = useState("");
   const [error, setError] = useState("");
-
   const focusableSelector = useMemo(() => FOCUSABLE_SELECTORS.join(","), []);
-
   const modalClassName = useMemo(() => joinClasses(
     "relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl outline-none dark:border-slate-800 dark:bg-slate-950",
     MODAL_SIZES[size] ?? MODAL_SIZES.md,
@@ -137,7 +129,6 @@ const Modal = ({
     }] : [];
 
     const usedIds = new Set();
-
     return source.map((action, index) => {
       const id = String(action.id ?? `action-${index}`);
       if (usedIds.has(id)) throw new Error(`Modal action id "${id}" must be unique.`);
@@ -154,7 +145,6 @@ const Modal = ({
 
   const pending = Boolean(pendingAction);
   const describedBy = [description && descriptionId, error && errorId].filter(Boolean).join(" ") || undefined;
-
   const getFocusableElements = () => Array.from(
     panelRef.current?.querySelectorAll(focusableSelector) ?? []
   ).filter(isFocusable);
@@ -165,11 +155,9 @@ const Modal = ({
 
   const runAction = async (action) => {
     if (pending || action.disabled || typeof action.handler !== "function") return;
-
     const requestId = ++actionRequestRef.current;
     setPendingAction(action.id);
     setError("");
-
     try {
       const result = await Promise.resolve(action.handler(action));
       if (!mountedRef.current || requestId !== actionRequestRef.current) return;
@@ -191,10 +179,8 @@ const Modal = ({
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
-
     previousFocusRef.current = document.activeElement;
     lockBodyScroll();
-
     const frame = window.requestAnimationFrame(() => {
       const target = initialFocusRef?.current ?? getFocusableElements()[0] ?? panelRef.current;
       target?.focus({ preventScroll: true });
@@ -203,7 +189,6 @@ const Modal = ({
     return () => {
       window.cancelAnimationFrame(frame);
       unlockBodyScroll();
-
       const previousFocus = previousFocusRef.current;
       if (previousFocus instanceof HTMLElement && document.contains(previousFocus)) {
         window.requestAnimationFrame(() => previousFocus.focus({ preventScroll: true }));
@@ -213,7 +198,6 @@ const Modal = ({
 
   useEffect(() => {
     if (!open) return undefined;
-
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         if (closeOnEscape && !pending) {
@@ -225,18 +209,15 @@ const Modal = ({
       }
 
       if (event.key !== "Tab") return;
-
       const elements = getFocusableElements();
       if (!elements.length) {
         event.preventDefault();
         panelRef.current?.focus();
         return;
       }
-
       const first = elements[0];
       const last = elements.at(-1);
       const active = document.activeElement;
-
       if (event.shiftKey && (active === first || !panelRef.current?.contains(active))) {
         event.preventDefault();
         last.focus();
@@ -249,7 +230,6 @@ const Modal = ({
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [closeOnEscape, onClose, open, pending]);
-
   useEffect(() => {
     if (open) return;
     actionRequestRef.current += 1;
@@ -260,7 +240,6 @@ const Modal = ({
   const handleBackdropPointerDown = (event) => {
     pointerStartedOnBackdropRef.current = event.target === event.currentTarget;
   };
-
   const handleBackdropPointerUp = (event) => {
     const endedOnBackdrop = event.target === event.currentTarget;
     if (pointerStartedOnBackdropRef.current && endedOnBackdrop && closeOnBackdrop) closeModal();
@@ -268,7 +247,6 @@ const Modal = ({
   };
 
   if (!open || typeof document === "undefined") return null;
-
   return createPortal(
     <div
       role="presentation"
@@ -343,7 +321,6 @@ const Modal = ({
 
             {normalizedActions.map((action) => {
               const actionPending = pendingAction === action.id;
-
               return (
                 <button
                   key={action.id}

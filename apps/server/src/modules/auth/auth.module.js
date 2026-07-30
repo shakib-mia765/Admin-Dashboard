@@ -1,9 +1,74 @@
-import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { loginSchema } from '@ultrafaang/validation';
-import { env } from '../../config/env.js';
-import { database } from '../../shared/database.js';
-const router=Router();
-router.post('/login',async(req,res,next)=>{try{const input=loginSchema.parse(req.body);const user=await database.user.findUnique({where:{email:input.email}});if(!user||!(await bcrypt.compare(input.password,user.passwordHash)))return res.status(401).json({success:false,message:'Invalid credentials'});const token=jwt.sign({sub:user.id,role:user.role},env.JWT_SECRET,{expiresIn:'1h'});res.cookie('accessToken',token,{httpOnly:true,sameSite:'lax',secure:env.NODE_ENV==='production'}).json({success:true,data:{id:user.id,name:user.name,role:user.role}});}catch(error){next(error);}});
-export const authModule=router;
+import { Router } from "express";
+import { authenticate } from "../middleware/auth.js";
+import { asyncHandler } from "../middleware/async-handler.js";
+import { validate } from "../middleware/validate.js";
+import {
+  loginSchema,
+  refreshSchema,
+  registerSchema
+} from "../schemas/auth.schema.js";
+
+const ROUTES = Object.freeze({
+  REGISTER: "/register",
+  LOGIN: "/login",
+  REFRESH: "/refresh",
+  LOGOUT: "/logout",
+  SESSION: "/session"
+});
+
+const assertDependencies = (dependencies) => {
+  const required = ["authController", "authRateLimit"];
+  const missing = required.filter((key) => !dependencies?.[key]);
+  if (missing.length) {
+    throw new TypeError(`Auth module missing: ${missing.join(", ")}`);
+  }
+};
+
+const bind = (controller, method) => {
+  const handler = controller?.[method];
+  if (typeof handler !== "function") {
+    throw new TypeError(`authController.${method} must be a function.`);
+  }
+  return asyncHandler(handler.bind(controller));
+};
+
+const createAuthModule = (dependencies = {}) => {
+  assertDependencies(dependencies);
+  const { authController, authRateLimit } = dependencies;
+  const router = Router({ caseSensitive: true, strict: true });
+  router.post(
+    ROUTES.REGISTER,
+    authRateLimit,
+    validate(registerSchema),
+    bind(authController, "register")
+  );
+
+  router.post(
+    ROUTES.LOGIN,
+    authRateLimit,
+    validate(loginSchema),
+    bind(authController, "login")
+  );
+  router.post(
+    ROUTES.REFRESH,
+    authRateLimit,
+    validate(refreshSchema),
+    bind(authController, "refresh")
+  );
+
+  router.post(
+    ROUTES.LOGOUT,
+    authenticate,
+    bind(authController, "logout")
+  );
+
+  router.get(
+    ROUTES.SESSION,
+    authenticate,
+    bind(authController, "session")
+  );
+  return router;
+};
+
+export { ROUTES, createAuthModule };
+export default createAuthModule;
